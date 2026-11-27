@@ -1,7 +1,9 @@
 package com.example.productservice.controller;
 
-import com.example.productservice.entity.Topping;
+import com.example.productservice.dto.ToppingRequest;
+import com.example.productservice.dto.ToppingResponse;
 import com.example.productservice.service.ToppingService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,36 +21,30 @@ public class ToppingController {
     }
 
     @GetMapping
-    public List<Topping> getAll() {
+    public List<ToppingResponse> getAll() {
         return service.getAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Topping> getById(@PathVariable Long id) {
-        return service.getById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ToppingResponse getById(@PathVariable Long id) {
+        return service.getById(id);
     }
 
     @PostMapping
-    public ResponseEntity<Topping> create(@RequestBody Topping topping) {
-        Topping created = service.create(topping);
+    public ResponseEntity<ToppingResponse> create(@Valid @RequestBody ToppingRequest request) {
+        ToppingResponse created = service.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Topping> update(@PathVariable Long id, @RequestBody Topping toppingDetails) {
-        return service.update(id, toppingDetails)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ToppingResponse> update(@PathVariable Long id, @Valid @RequestBody ToppingRequest request) {
+        ToppingResponse updated = service.update(id, request);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (service.delete(id)) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+        service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
-

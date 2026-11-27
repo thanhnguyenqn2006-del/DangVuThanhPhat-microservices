@@ -1,13 +1,15 @@
 package com.example.productservice.service;
 
+import com.example.productservice.dto.ProductRequest;
+import com.example.productservice.dto.ProductResponse;
 import com.example.productservice.entity.Category;
 import com.example.productservice.entity.Product;
+import com.example.productservice.exception.ResourceNotFoundException;
 import com.example.productservice.repository.CategoryRepository;
 import com.example.productservice.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ProductService {
@@ -20,49 +22,86 @@ public class ProductService {
         this.categoryRepository = categoryRepository;
     }
 
-    public List<Product> getAll() {
-        return productRepository.findAll();
+    private ProductResponse toResponse(Product product) {
+        Long categoryId = product.getCategory() != null ? product.getCategory().getId() : null;
+        String categoryName = product.getCategory() != null ? product.getCategory().getName() : null;
+
+        return new ProductResponse(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getImageUrl(),
+                product.getStatus(),
+                categoryId,
+                categoryName
+        );
     }
 
-    public Optional<Product> getById(Long id) {
-        return productRepository.findById(id);
+    public List<ProductResponse> getAll() {
+        return productRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    public List<Product> getByCategoryId(Long categoryId) {
-        return productRepository.findByCategoryId(categoryId);
+    public ProductResponse getById(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sản phẩm có ID: " + id));
+        return toResponse(product);
     }
 
-    public Product create(Product product) {
-        if (product.getCategory() != null && product.getCategory().getId() != null) {
-            Category category = categoryRepository.findById(product.getCategory().getId()).orElse(null);
+    public List<ProductResponse> getByCategoryId(Long categoryId) {
+        return productRepository.findByCategoryId(categoryId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public ProductResponse create(ProductRequest request) {
+        Product product = new Product();
+        product.setName(request.name());
+        product.setDescription(request.description());
+        product.setPrice(request.price());
+        product.setImageUrl(request.imageUrl());
+        product.setStatus(request.status() != null ? request.status() : "AVAILABLE");
+
+        if (request.categoryId() != null) {
+            Category category = categoryRepository.findById(request.categoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh mục có ID: " + request.categoryId()));
             product.setCategory(category);
         }
-        return productRepository.save(product);
+
+        Product saved = productRepository.save(product);
+        return toResponse(saved);
     }
 
-    public Optional<Product> update(Long id, Product productDetails) {
-        return productRepository.findById(id).map(existing -> {
-            existing.setName(productDetails.getName());
-            existing.setDescription(productDetails.getDescription());
-            existing.setPrice(productDetails.getPrice());
-            existing.setImageUrl(productDetails.getImageUrl());
-            if (productDetails.getStatus() != null) {
-                existing.setStatus(productDetails.getStatus());
-            }
-            if (productDetails.getCategory() != null && productDetails.getCategory().getId() != null) {
-                Category category = categoryRepository.findById(productDetails.getCategory().getId()).orElse(null);
-                existing.setCategory(category);
-            }
-            return productRepository.save(existing);
-        });
-    }
+    public ProductResponse update(Long id, ProductRequest request) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sản phẩm có ID: " + id));
 
-    public boolean delete(Long id) {
-        if (productRepository.existsById(id)) {
-            productRepository.deleteById(id);
-            return true;
+        product.setName(request.name());
+        product.setDescription(request.description());
+        product.setPrice(request.price());
+        product.setImageUrl(request.imageUrl());
+        if (request.status() != null) {
+            product.setStatus(request.status());
         }
-        return false;
+
+        if (request.categoryId() != null) {
+            Category category = categoryRepository.findById(request.categoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh mục có ID: " + request.categoryId()));
+            product.setCategory(category);
+        }
+
+        Product updated = productRepository.save(product);
+        return toResponse(updated);
+    }
+
+    public void delete(Long id) {
+        if (!productRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Không tìm thấy sản phẩm có ID: " + id);
+        }
+        productRepository.deleteById(id);
     }
 }
-
