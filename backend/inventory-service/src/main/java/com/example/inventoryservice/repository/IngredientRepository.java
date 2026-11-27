@@ -15,3 +15,4 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
     @Query("SELECT i FROM Ingredient i WHERE i.quantityInStock <= i.minQuantity")
     List<Ingredient> findLowStockIngredients();
 }
+

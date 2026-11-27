@@ -63,3 +63,4 @@ public class IngredientController {
         return ResponseEntity.notFound().build();
     }
 }
+

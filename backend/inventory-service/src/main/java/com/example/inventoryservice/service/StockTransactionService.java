@@ -62,3 +62,4 @@ public class StockTransactionService {
         return transactionRepository.save(transaction);
     }
 }
+
